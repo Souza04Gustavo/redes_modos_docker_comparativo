@@ -12,9 +12,9 @@ import sys
 PARENT_INTERFACE = "wlp0s20f3"      # Sua interface Wi-Fi
 SUBNET = "192.168.127.0/24"         # Sua faixa de IP correta
 GATEWAY = "192.168.127.1"
+
 # IP Fixo para o container Cliente
 MACVLAN_CLIENT_IP = "192.168.127.201"
-# IP onde o Servidor está (definido no script anterior)
 TARGET_IP_MACVLAN = "192.168.127.200"
 
 IMAGE_NAME = "rec_te1_container"
@@ -37,10 +37,8 @@ def setup_client_env(mode):
     run_cmd("docker rm -f rec_client")
     
     if mode == 'macvlan':
-        # Recria a rede localmente usando IPVLAN (Compatível com Wi-Fi)
         run_cmd("docker network rm rede_macvlan_manual")
         
-        # MUDANÇA AQUI: Trocamos -d macvlan por -d ipvlan e adicionamos ipvlan_mode=l2
         cmd_net = (f"docker network create -d ipvlan "
                    f"--subnet={SUBNET} --gateway={GATEWAY} "
                    f"-o parent={PARENT_INTERFACE} -o ipvlan_mode=l2 "
@@ -56,7 +54,6 @@ def setup_client_env(mode):
         run_cmd(f"docker run -d --rm --name rec_client --network rede_overlay_manual {IMAGE_NAME} tail -f /dev/null")
         return "rec_server" # DNS do Docker Swarm
 
-# --- COLETA DE DADOS (Idêntica ao script anterior) ---
 def collect_metrics(target_ip):
     # 1. Vazão TCP e CPU
     runs_throughput = []
@@ -99,7 +96,6 @@ def collect_metrics(target_ip):
         'udp': udp_data
     }
 
-# --- PLOTAGEM ---
 def generate_charts(db):
     print("\n--- Gerando Gráficos Multi-Host ---")
     sns.set_style("whitegrid")
@@ -163,7 +159,6 @@ if __name__ == "__main__":
 
     mode_atual = sys.argv[1] # 'macvlan' ou 'overlay'
     
-    # Verifica se já temos dados salvos para não sobrescrever se rodarmos separado
     db_file = f"{RESULTS_DIR}/db_temp.json"
     if os.path.exists(db_file):
         with open(db_file, 'r') as f: database = json.load(f)
@@ -184,7 +179,6 @@ if __name__ == "__main__":
     # Limpeza
     run_cmd("docker rm -f rec_client")
     
-    # Se já tivermos os dois modos no banco de dados, gera os gráficos comparativos
     if 'macvlan' in database and 'overlay' in database:
         generate_charts(database)
         print("\n[SUCESSO] Gráficos comparativos gerados!")

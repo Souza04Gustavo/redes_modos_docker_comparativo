@@ -15,7 +15,6 @@ IMAGE_NAME = "rec_te1_container"
 def run_cmd(cmd, ignore_error=False):
     print(f"[EXEC] {cmd}")
     try:
-        # check=True faz o script parar se o comando der erro
         subprocess.run(cmd, shell=True, check=not ignore_error)
     except subprocess.CalledProcessError:
         print(f"\n[ERRO CRÍTICO] O comando falhou: {cmd}")
@@ -24,11 +23,9 @@ def run_cmd(cmd, ignore_error=False):
 
 def setup_macvlan():
     print("\n--- Configurando MACVLAN (Servidor) ---")
-    # Aqui usamos ignore_error=True porque se não existir, tudo bem falhar
     run_cmd("docker rm -f rec_server", ignore_error=True)
     run_cmd("docker network rm rede_macvlan_manual", ignore_error=True)
     
-    # Agora com IP-RANGE para ser mais seguro
     cmd_net = (f"docker network create -d macvlan "
                f"--subnet={SUBNET} --gateway={GATEWAY} --ip-range={IP_RANGE} "
                f"-o parent={PARENT_INTERFACE} rede_macvlan_manual")
@@ -40,8 +37,6 @@ def setup_overlay():
     print("\n--- Configurando OVERLAY (Servidor) ---")
     run_cmd("docker rm -f rec_server", ignore_error=True)
     
-    # Tenta criar a rede overlay caso não exista (precisa do swarm init antes)
-    # Se der erro pq já existe, ignoramos
     run_cmd("docker network create -d overlay --attachable rede_overlay_manual", ignore_error=True)
     
     run_cmd(f"docker run -d --rm --name rec_server --network rede_overlay_manual {IMAGE_NAME}")
